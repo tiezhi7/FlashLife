@@ -1,0 +1,31 @@
+### ================================
+### FlashLife Day2 API Test
+### ================================
+
+
+### Hello
+GET http://localhost:8080/api/hello
+
+
+### 创建用户 Tom
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "username": "tom",
+  "nickname": "Tom"
+}
+
+
+### 创建用户 Alice
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "nickname": "Alice"
+}
+
+
+### 查询全部用户
+GET http://localhost:8080/api/users
