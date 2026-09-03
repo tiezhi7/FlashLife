@@ -5,6 +5,7 @@ import com.flashlife.entity.User;
 import com.flashlife.service.UserService;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,8 +36,19 @@ public class UserController {
      * GET /api/users/count
      */
     @GetMapping("/count")
-    public Result<Integer> getUserCount() {
-        int count = userService.getUserCount();
+    public Result<Long> getUserCount() {
+        long count = userService.getUserCount();
         return Result.success(count);
+    }
+    /*
+     * GET /api/users/1
+     * 根据 ID 查询用户。
+     */
+    @GetMapping("/{id}")
+    public Result<User> getUserById(
+            @PathVariable Long id
+    ) {
+        User user = userService.getUserById(id);
+        return Result.success(user);
     }
 }
