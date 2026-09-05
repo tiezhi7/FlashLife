@@ -1,23 +1,39 @@
 ### ================================
 ### FlashLife Day2 API Test
 ### ================================
-
-
 ### Hello
 GET http://localhost:8080/api/hello
-
-
 ### 创建用户 Tom
 POST http://localhost:8080/api/users
 Content-Type: application/json
-
 {
   "username": "tom",
   "nickname": "Tom"
 }
-
-
 ### 创建用户 Alice
+POST http://localhost:8080/api/users
+Content-Type: application/json
+{
+  "username": "alice",
+  "nickname": "Alice"
+}
+### 查询全部用户
+GET http://localhost:8080/api/users
+
+### Day4 - 空用户名测试
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "username": "",
+  "nickname": "Test"
+}
+
+### ================================================
+### FlashLife Day4
+### Validation + Exception Handling
+### ================================================
+### 1. 正常创建 Alice
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
@@ -25,7 +41,51 @@ Content-Type: application/json
   "username": "alice",
   "nickname": "Alice"
 }
+### 2. username 为空
+POST http://localhost:8080/api/users
+Content-Type: application/json
 
+{
+  "username": "",
+  "nickname": "Test"
+}
+### 3. username 太短
+POST http://localhost:8080/api/users
+Content-Type: application/json
 
-### 查询全部用户
+{
+  "username": "ab",
+  "nickname": "Test"
+}
+### 4. username 含非法字符
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "username": "hello@world",
+  "nickname": "Test"
+}
+### 5. nickname 为空
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "username": "new_user",
+  "nickname": ""
+}
+### 6. 创建已经存在的 tom
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+  "username": "tom",
+  "nickname": "Another Tom"
+}
+### 7. 查询存在的用户
+GET http://localhost:8080/api/users/1
+### 8. 查询不存在用户
+GET http://localhost:8080/api/users/9999
+### 9. 查询全部用户
 GET http://localhost:8080/api/users
+### 10. 查询用户数量
+GET http://localhost:8080/api/users/count

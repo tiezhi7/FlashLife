@@ -10,5 +10,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface UserRepository
         extends JpaRepository<User, Long> {
-
+    /*
+     * 判断 username 是否已经存在。
+     * 例如：existsByUsername("tom")
+     *如果数据库已经有 tom： true
+     * 如果没有 alice：false
+     */
+    boolean existsByUsername(String username);
 }

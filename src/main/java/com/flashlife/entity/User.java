@@ -49,23 +49,19 @@ public class User {
     )
     private Long id;
     /*
-     * username
-     * nullable = false
-     * 对应：
-     * NOT NULL
-     * length = 50
-     * 对应：
-     * VARCHAR(50)
+     * unique = true
+     * 表达：username 在数据库设计中应当唯一。
+     *注意：真正可靠的唯一性仍然由数据库 UNIQUE 约束保证。
      */
     @Column(
             nullable = false,
-            length = 50
+            length = 50,
+            unique = true
     )
     private String username;
     /*
      * nickname
-     * 同样对应数据库中的：
-     * nickname VARCHAR(50) NOT NULL
+     * 同样对应数据库中的： nickname VARCHAR(50) NOT NULL
      */
     @Column(
             nullable = false,
@@ -80,11 +76,8 @@ public class User {
     }
     /*
      * 我们自己使用的有参构造方法。
-     * 注意：
-     * 不再传 id。
-     * 因为：
-     * MySQL AUTO_INCREMENT
-     * 会生成 id。
+     * 注意：不再传 id。
+     * 因为：MySQL AUTO_INCREMENT会生成 id。
      */
     public User(
             String username,

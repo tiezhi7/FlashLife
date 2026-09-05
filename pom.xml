@@ -64,6 +64,17 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!--
+    Spring Boot Validation
+    作用：
+    对 Controller 接收到的数据
+    进行参数合法性校验。
+    后面会使用：@Valid @NotBlank @Size @Pattern
+-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

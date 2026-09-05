@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -20,10 +22,15 @@ public class UserController {
     public UserController(UserService userService){
         this.userService = userService;
     }
+    /*
+     * @Valid： 告诉 Spring： 在进入这个方法之前，先检查 UserCreateRequest上面的 Validation 注解。
+     */
     @PostMapping
     public Result<User> createUser(
-            @RequestBody UserCreateRequest request
-    ){
+            @Valid
+            @RequestBody
+            UserCreateRequest request
+    ) {
         User user = userService.createUser(request);
         return Result.success(user);
     }
