@@ -89,3 +89,83 @@ GET http://localhost:8080/api/users/9999
 GET http://localhost:8080/api/users
 ### 10. 查询用户数量
 GET http://localhost:8080/api/users/count
+
+### ==================================================
+### FlashLife Day5
+### Register + BCrypt + Login
+### ==================================================
+
+
+### 1. 注册 alice
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "Alice123456",
+  "nickname": "Alice"
+}
+
+
+### 2. 注册 tom
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "tom",
+  "password": "Tom123456",
+  "nickname": "Tom"
+}
+
+
+### 3. 重复注册 alice
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "AnotherPassword123",
+  "nickname": "Alice2"
+}
+
+
+### 4. 正确密码登录 alice
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "Alice123456"
+}
+
+
+### 5. 错误密码登录 alice
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "WrongPassword"
+}
+
+
+### 6. 不存在用户登录
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "not_exist",
+  "password": "Whatever123"
+}
+
+
+### 7. 查询用户
+GET http://localhost:8080/api/users
+
+
+### 8. 查询 alice
+GET http://localhost:8080/api/users/1
+
+
+### 9. 用户数量
+GET http://localhost:8080/api/users/count

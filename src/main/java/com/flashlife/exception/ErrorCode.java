@@ -40,6 +40,12 @@ public enum ErrorCode {
             50000,
             "服务器内部错误",
             HttpStatus.INTERNAL_SERVER_ERROR
+    ),
+
+    INVALID_CREDENTIALS(
+            40101,
+            "用户名或密码错误",
+            HttpStatus.UNAUTHORIZED
     );
     /*
      * FlashLife 自己定义的业务错误码。

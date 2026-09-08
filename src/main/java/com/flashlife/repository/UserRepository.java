@@ -4,6 +4,7 @@ import com.flashlife.entity.User;
 // JpaRepository
 // Spring Data JPA 提供的核心 Repository 接口。
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 /*
  * UserRepository
  * 专门负责：User与MySQL users 表之间的数据访问。
@@ -17,4 +18,5 @@ public interface UserRepository
      * 如果没有 alice：false
      */
     boolean existsByUsername(String username);
+    Optional<User> findByUsername(String username);
 }

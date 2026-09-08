@@ -30,39 +30,30 @@ import jakarta.persistence.Table;
  */
 @Table(name = "users")
 public class User {
-    /*
-     * @Id
-     * 告诉 JPA：
-     * id 是主键。
-     * 对应 MySQL：
-     * PRIMARY KEY
-     */
     @Id
-    /*
-     * IDENTITY：
-     * 表示 ID 由数据库生成。
-     * 对应我们 MySQL 的：
-     * AUTO_INCREMENT
-     */
     @GeneratedValue(
             strategy = GenerationType.IDENTITY
     )
     private Long id;
-    /*
-     * unique = true
-     * 表达：username 在数据库设计中应当唯一。
-     *注意：真正可靠的唯一性仍然由数据库 UNIQUE 约束保证。
-     */
+
     @Column(
             nullable = false,
             length = 50,
             unique = true
     )
     private String username;
+
     /*
-     * nickname
-     * 同样对应数据库中的： nickname VARCHAR(50) NOT NULL
+     * 注意字段名：passwordHash而不是 password。
+     * Java 对象中同样明确表达：这里绝不保存明文密码。
      */
+    @Column(
+            name = "password_hash",
+            nullable = false,
+            length = 100
+    )
+    private String passwordHash;
+
     @Column(
             nullable = false,
             length = 50
@@ -81,10 +72,20 @@ public class User {
      */
     public User(
             String username,
+            String passwordHash,
             String nickname
     ) {
         this.username = username;
+        this.passwordHash = passwordHash;
         this.nickname = nickname;
+    }
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+    public void setPasswordHash(
+            String passwordHash
+    ) {
+        this.passwordHash = passwordHash;
     }
     public Long getId() {
         return id;

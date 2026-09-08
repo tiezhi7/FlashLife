@@ -1,61 +1,58 @@
 package com.flashlife.controller;
+
 import com.flashlife.common.Result;
-import com.flashlife.dto.UserCreateRequest;
-import com.flashlife.entity.User;
+
+import com.flashlife.dto.UserResponse;
+
 import com.flashlife.service.UserService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-
-import jakarta.validation.Valid;
-
+/*
+ * 用户查询 API。
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
-    public UserController(UserService userService){
+    public UserController(
+            UserService userService
+    ) {
         this.userService = userService;
     }
     /*
-     * @Valid： 告诉 Spring： 在进入这个方法之前，先检查 UserCreateRequest上面的 Validation 注解。
+     * 查询所有用户。
      */
-    @PostMapping
-    public Result<User> createUser(
-            @Valid
-            @RequestBody
-            UserCreateRequest request
-    ) {
-        User user = userService.createUser(request);
-        return Result.success(user);
-    }
     @GetMapping
-    public Result<List<User>> getAllUsers(){
-        List<User> users = userService.getAllUsers();
-        return Result.success(users);
+    public Result<List<UserResponse>>
+    getAllUsers() {
+        return Result.success(
+                userService.getAllUsers()
+        );
     }
     /*
-     * GET /api/users/count
+     * 查询用户数量。
      */
     @GetMapping("/count")
     public Result<Long> getUserCount() {
-        long count = userService.getUserCount();
-        return Result.success(count);
+        return Result.success(
+                userService.getUserCount()
+        );
     }
     /*
-     * GET /api/users/1
      * 根据 ID 查询用户。
      */
     @GetMapping("/{id}")
-    public Result<User> getUserById(
+    public Result<UserResponse>
+    getUserById(
             @PathVariable Long id
     ) {
-        User user = userService.getUserById(id);
-        return Result.success(user);
+        return Result.success(
+                userService.getUserById(id)
+        );
     }
 }
