@@ -33,6 +33,11 @@ public enum ErrorCode {
             "用户名已存在",
             HttpStatus.CONFLICT
     ),
+    UNAUTHORIZED(
+            40102,
+            "请先登录或登录状态已失效",
+            HttpStatus.UNAUTHORIZED
+    ),
     /*
      * 未知服务器错误。
      */

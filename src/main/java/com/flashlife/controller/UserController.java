@@ -6,6 +6,8 @@ import com.flashlife.dto.UserResponse;
 
 import com.flashlife.service.UserService;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,6 +55,34 @@ public class UserController {
     ) {
         return Result.success(
                 userService.getUserById(id)
+        );
+    }
+    /*
+     * ========================================
+     * 当前登录用户
+     * ========================================
+     *
+     * GET /api/users/me
+     */
+    @GetMapping("/me")
+    public Result<UserResponse> getCurrentUser(
+            @AuthenticationPrincipal
+            Long userId
+    ) {
+        /*
+         * userId 并不是浏览器自己传来的。
+         * 它来自：JWT
+         * ↓
+         * JwtAuthenticationFilter
+         * ↓
+         * SecurityContext
+         * ↓
+         * @AuthenticationPrincipal
+         */
+        return Result.success(
+                userService.getUserById(
+                        userId
+                )
         );
     }
 }

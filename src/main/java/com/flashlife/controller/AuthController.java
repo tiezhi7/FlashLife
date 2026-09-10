@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.flashlife.dto.LoginResponse;
 /*
  * AuthController
  * 用户认证相关 API。
@@ -54,17 +56,17 @@ public class AuthController {
      * POST /api/auth/login
      */
     @PostMapping("/login")
-    public Result<UserResponse> login(
+    public Result<LoginResponse> login(
             @Valid
             @RequestBody
             LoginRequest request
     ) {
-        UserResponse user =
+        LoginResponse loginResponse =
                 authService.login(
                         request
                 );
         return Result.success(
-                user
+                loginResponse
         );
     }
 }

@@ -169,3 +169,70 @@ GET http://localhost:8080/api/users/1
 
 ### 9. 用户数量
 GET http://localhost:8080/api/users/count
+
+###
+GET http://localhost:8080/api/users/mee
+
+###
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "Alice123456"
+}
+###
+@baseUrl = http://localhost:8080
+@token = PASTE_ACCESS_TOKEN_HERE
+### ================================================
+### 1. 注册
+### ================================================
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "jack",
+  "password": "Jack123456",
+  "nickname": "Jack"
+}
+
+
+### ================================================
+### 2. 登录
+### ================================================
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "Alice123456"
+}
+
+
+### ================================================
+### 3. 未登录访问当前用户
+### 应该：401
+### ================================================
+GET {{baseUrl}}/api/users/me
+
+
+### ================================================
+### 4. 带 JWT 查询当前用户
+### 应该：200
+### ================================================
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+
+
+### ================================================
+### 5. 带 JWT 查询用户列表
+### ================================================
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+
+
+### ================================================
+### 6. 带 JWT 查询用户数量
+### ================================================
+GET {{baseUrl}}/api/users/count
+Authorization: Bearer {{token}}

@@ -14,6 +14,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.flashlife.dto.LoginResponse;
+import com.flashlife.security.JwtService;
+
 import org.springframework.stereotype.Service;
 /*
  * AuthService
@@ -24,16 +27,19 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
     /*
      * 构造器注入。
      * Spring 自动提供：UserRepository PasswordEncoder
      */
     public AuthService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
     /*
      * ========================================
@@ -109,11 +115,13 @@ public class AuthService {
      * 登录认证
      * ========================================
      */
-    public UserResponse login(
+    public LoginResponse login(
             LoginRequest request
     ) {
         /*
-         * 根据 username 查询数据库。
+         * 根据 username 查询用户。
+         * 用户不存在：
+         * 统一返回用户名或密码错误。
          */
         User user =
                 userRepository
@@ -127,32 +135,35 @@ public class AuthService {
                                         )
                         );
         /*
-         * passwordEncoder.matches()
-         * 第一个参数：用户刚刚输入的明文密码
-         * 第二个参数：数据库中的 BCrypt Hash
+         * 验证明文密码
+         * 和数据库 BCrypt Hash。
          */
         boolean passwordCorrect =
                 passwordEncoder.matches(
                         request.getPassword(),
                         user.getPasswordHash()
                 );
-        /*
-         * 密码错误。
-         */
         if (!passwordCorrect) {
             throw new BusinessException(
                     ErrorCode.INVALID_CREDENTIALS
             );
         }
         /*
-         * 用户名存在
-         * +
-         * 密码正确
-         * 当前 Day5：认证成功。
-         * Day6 才产生 Token。
+         * 到这里说明：用户存在+密码正确。
+         * 开始签发 Access Token。
          */
-        return UserResponse.from(
-                user
+        String accessToken =
+                jwtService.generateAccessToken(
+                        user
+                );
+        /*
+         * 返回：Access Token+Token 类型+过期时间+当前用户
+         */
+        return new LoginResponse(
+                accessToken,
+                "Bearer",
+                jwtService.getExpiresInSeconds(),
+                UserResponse.from(user)
         );
     }
 }
