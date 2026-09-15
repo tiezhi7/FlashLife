@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.flashlife.dto.LoginResponse;
+import com.flashlife.dto.LogoutRequest;
+import com.flashlife.dto.RefreshTokenRequest;
+import com.flashlife.dto.TokenPairResponse;
 /*
  * AuthController
  * 用户认证相关 API。
@@ -56,17 +58,51 @@ public class AuthController {
      * POST /api/auth/login
      */
     @PostMapping("/login")
-    public Result<LoginResponse> login(
+    public Result<TokenPairResponse> login(
             @Valid
             @RequestBody
             LoginRequest request
     ) {
-        LoginResponse loginResponse =
+        return Result.success(
                 authService.login(
                         request
-                );
+                )
+        );
+    }
+    /*
+     * ========================================
+     * 刷新 Access Token
+     * ========================================
+     * POST /api/auth/refresh
+     */
+    @PostMapping("/refresh")
+    public Result<TokenPairResponse> refresh(
+            @Valid
+            @RequestBody
+            RefreshTokenRequest request
+    ) {
         return Result.success(
-                loginResponse
+                authService.refresh(
+                        request
+                )
+        );
+    }
+    /*
+     * ========================================
+     * 退出登录
+     * ========================================
+     */
+    @PostMapping("/logout")
+    public Result<Void> logout(
+            @Valid
+            @RequestBody
+            LogoutRequest request
+    ) {
+        authService.logout(
+                request
+        );
+        return Result.success(
+                null
         );
     }
 }

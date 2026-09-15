@@ -1,8 +1,13 @@
 package com.flashlife.service;
+
 import com.flashlife.dto.LoginRequest;
+import com.flashlife.dto.LogoutRequest;
+import com.flashlife.dto.RefreshTokenRequest;
 import com.flashlife.dto.RegisterRequest;
+import com.flashlife.dto.TokenPairResponse;
 import com.flashlife.dto.UserResponse;
 
+import com.flashlife.entity.RefreshToken;
 import com.flashlife.entity.User;
 
 import com.flashlife.exception.BusinessException;
@@ -10,36 +15,59 @@ import com.flashlife.exception.ErrorCode;
 
 import com.flashlife.repository.UserRepository;
 
+import com.flashlife.security.JwtService;
+
 import org.springframework.dao.DataIntegrityViolationException;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.flashlife.dto.LoginResponse;
-import com.flashlife.security.JwtService;
-
 import org.springframework.stereotype.Service;
+
+import org.springframework.transaction.annotation.Transactional;
 /*
  * AuthService
- * Authentication Service
- * 专门负责：注册 登录认证 等账号认证相关业务。
+ * 用户认证相关业务逻辑。
+ * 负责：
+ * 1. 注册
+ * 2. 登录
+ * 3. Refresh Token
+ * 4. Logout
  */
 @Service
 public class AuthService {
+    /*
+     * User 数据库访问层。
+     */
     private final UserRepository userRepository;
+    /*
+     * BCrypt 密码组件。
+     */
     private final PasswordEncoder passwordEncoder;
+    /*
+     * Access Token / JWT 服务。
+     */
     private final JwtService jwtService;
     /*
+     * Refresh Token 服务。
+     */
+    private final RefreshTokenService refreshTokenService;
+    /*
      * 构造器注入。
-     * Spring 自动提供：UserRepository PasswordEncoder
      */
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService
     ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+        this.userRepository =
+                userRepository;
+        this.passwordEncoder =
+                passwordEncoder;
+        this.jwtService =
+                jwtService;
+        this.refreshTokenService =
+                refreshTokenService;
     }
     /*
      * ========================================
@@ -115,14 +143,9 @@ public class AuthService {
      * 登录认证
      * ========================================
      */
-    public LoginResponse login(
+    public TokenPairResponse login(
             LoginRequest request
     ) {
-        /*
-         * 根据 username 查询用户。
-         * 用户不存在：
-         * 统一返回用户名或密码错误。
-         */
         User user =
                 userRepository
                         .findByUsername(
@@ -134,10 +157,6 @@ public class AuthService {
                                                 ErrorCode.INVALID_CREDENTIALS
                                         )
                         );
-        /*
-         * 验证明文密码
-         * 和数据库 BCrypt Hash。
-         */
         boolean passwordCorrect =
                 passwordEncoder.matches(
                         request.getPassword(),
@@ -149,21 +168,124 @@ public class AuthService {
             );
         }
         /*
-         * 到这里说明：用户存在+密码正确。
-         * 开始签发 Access Token。
+         * 创建短期 Access Token。
          */
         String accessToken =
                 jwtService.generateAccessToken(
                         user
                 );
         /*
-         * 返回：Access Token+Token 类型+过期时间+当前用户
+         * 创建长期 Refresh Token。
          */
-        return new LoginResponse(
+        String refreshToken =
+                refreshTokenService.issue(
+                        user.getId()
+                );
+        return new TokenPairResponse(
                 accessToken,
+                refreshToken,
                 "Bearer",
                 jwtService.getExpiresInSeconds(),
+                refreshTokenService.getExpiresInSeconds(),
                 UserResponse.from(user)
+        );
+    }
+    /*
+     * ========================================
+     * 刷新登录状态
+     * ========================================
+     *
+     * @Transactional：
+     *
+     * 整个刷新过程放在一个数据库事务中。
+     *
+     * 旧 Token：
+     * 撤销
+     *
+     * 新 Token：
+     * 创建
+     *
+     * 要么一起成功，
+     * 要么一起失败。
+     */
+    @Transactional
+    public TokenPairResponse refresh(
+            RefreshTokenRequest request
+    ) {
+        /*
+         * 查询旧 Refresh Token，并对数据库记录加锁。
+         */
+        RefreshToken oldRefreshToken =
+                refreshTokenService
+                        .getValidTokenForUpdate(
+                                request.getRefreshToken()
+                        );
+        /*
+         * 找到 Refresh Token 所属用户。
+         */
+        User user =
+                userRepository
+                        .findById(
+                                oldRefreshToken.getUserId()
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new BusinessException(
+                                                ErrorCode.INVALID_REFRESH_TOKEN
+                                        )
+                        );
+        /*
+         * Rotation：旧 Refresh Token 立即作废。
+         */
+        refreshTokenService.revoke(
+                oldRefreshToken
+        );
+        /*
+         * 创建新的 Refresh Token。
+         */
+        String newRefreshToken =
+                refreshTokenService.issue(
+                        user.getId()
+                );
+        /*
+         * 同时签发新的 Access Token。
+         */
+        String newAccessToken =
+                jwtService.generateAccessToken(
+                        user
+                );
+        return new TokenPairResponse(
+                newAccessToken,
+                newRefreshToken,
+                "Bearer",
+                jwtService.getExpiresInSeconds(),
+                refreshTokenService.getExpiresInSeconds(),
+                UserResponse.from(user)
+        );
+    }
+    /*
+     * ========================================
+     * 退出登录
+     * ========================================
+     */
+    @Transactional
+    public void logout(
+            LogoutRequest request
+    ) {
+        /*
+         * 找到当前 Refresh Token。
+         * 找不到 / 已经失效：统一认为凭证无效。
+         */
+        RefreshToken refreshToken =
+                refreshTokenService
+                        .getValidTokenForUpdate(
+                                request.getRefreshToken()
+                        );
+        /*
+         * 撤销 Refresh Token。
+         */
+        refreshTokenService.revoke(
+                refreshToken
         );
     }
 }
