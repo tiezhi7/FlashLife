@@ -114,6 +114,19 @@
             <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
+        <!--
+    Spring Data Redis
+    作用：让 Spring Boot 可以连接 Redis，
+    并提供：RedisConnectionFactory
+    RedisTemplate
+    StringRedisTemplate等工具。
+    默认客户端：
+    Lettuce
+-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

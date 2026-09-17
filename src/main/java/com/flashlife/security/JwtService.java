@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 
+import java.util.UUID;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -83,6 +85,7 @@ public class JwtService {
          * 创建 JWT。
          */
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 /*
                  * iss：
                  * 谁签发 Token。
@@ -179,5 +182,42 @@ public class JwtService {
      */
     public long getExpiresInSeconds() {
         return expireMinutes * 60;
+    }
+    /*
+     * ========================================
+     * 获取 JWT ID
+     * ========================================
+     */
+    public String extractJti(
+            String token
+    ) {
+        Claims claims =
+                parseClaims(
+                        token
+                );
+        /*
+         * 对应 JWT 的： jti
+         */
+        return claims.getId();
+    }
+    /*
+     * ========================================
+     * 获取 Token 过期时间
+     * ========================================
+     */
+    public Instant extractExpiration(
+            String token
+    ) {
+        Claims claims =
+                parseClaims(
+                        token
+                );
+        /*
+         * JJWT 返回 java.util.Date。
+         * 我们转换成：java.time.Instant
+         */
+        return claims
+                .getExpiration()
+                .toInstant();
     }
 }

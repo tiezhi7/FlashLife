@@ -32,10 +32,15 @@ import java.util.Collections;
 public class JwtAuthenticationFilter
         extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final AccessTokenBlacklistService
+            accessTokenBlacklistService;
     public JwtAuthenticationFilter(
-            JwtService jwtService
+            JwtService jwtService,
+            AccessTokenBlacklistService
+                    accessTokenBlacklistService
     ) {
         this.jwtService = jwtService;
+        this.accessTokenBlacklistService = accessTokenBlacklistService;
     }
     @Override
     protected void doFilterInternal(
@@ -77,34 +82,43 @@ public class JwtAuthenticationFilter
                 authorizationHeader.substring(7);
         try {
             /*
-             * 如果：
-             * Signature 错误
-             * Token 过期
-             * Token 格式错误
-             * JJWT 会抛异常。
-             * 正常情况下得到：userId。
+             * 先验证 JWT，并读取 jti。
              */
-            Long userId =
-                    jwtService.extractUserId(
-                            token
-                    );
+            String jti = jwtService.extractJti(token);
             /*
-             * 防止重复覆盖已经建立的认证信息。
+             * ========================================
+             * Redis 黑名单检查
+             * ========================================
+             * 如果： jti 已经被写入 Redis
+             * 说明： 这枚 Access Token 已经 Logout。
              */
+            if (
+                    accessTokenBlacklistService
+                            .isBlacklisted(jti)
+            ) {
+                /*
+                 * 不建立认证信息。
+                 */
+                SecurityContextHolder
+                        .clearContext();
+                /*
+                 * 继续进入 Spring Security 后续流程。
+                 * 因为目标 API 需要 authenticated()，最终会返回 401。
+                 */
+                filterChain.doFilter(request, response);
+                return;
+            }
+            /*
+             * Token 没被注销。
+             * 再获取当前 userId。
+             */
+            Long userId = jwtService.extractUserId(token);
             if (
                     SecurityContextHolder
                             .getContext()
                             .getAuthentication()
                             == null
             ) {
-                /*
-                 * 创建 Spring Security
-                 * Authentication 对象。
-                 * principal：我们当前使用 userId。
-                 * credentials：已经验证完 JWT，不需要密码，
-                 * 所以 null。
-                 * authorities：Day6 暂时没有角色权限，所以空集合。
-                 */
                 UsernamePasswordAuthenticationToken
                         authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -112,10 +126,6 @@ public class JwtAuthenticationFilter
                                 null,
                                 Collections.emptyList()
                         );
-                /*
-                 * 告诉 Spring Security：当前请求已经认证。
-                 * 当前用户 ID：userId
-                 */
                 SecurityContextHolder
                         .getContext()
                         .setAuthentication(
@@ -127,12 +137,8 @@ public class JwtAuthenticationFilter
                 |
                 IllegalArgumentException e
         ) {
-            /*
-             * Token 有问题：不建立认证信息。
-             * 后面如果目标 API
-             * 需要 authenticated()，就会得到 401。
-             */
-            SecurityContextHolder.clearContext();
+            SecurityContextHolder
+                    .clearContext();
         }
         /*
          * 继续执行后续 Filter和 Controller。

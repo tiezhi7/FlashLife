@@ -8,6 +8,9 @@ import com.flashlife.dto.UserResponse;
 
 import com.flashlife.service.AuthService;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.RequestHeader;
+
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.PostMapping;
@@ -94,15 +97,25 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public Result<Void> logout(
+            /*
+             * 获取 HTTP：Authorization
+             * Header。
+             */
+            @RequestHeader(HttpHeaders.AUTHORIZATION)
+            String authorizationHeader,
             @Valid
             @RequestBody
             LogoutRequest request
     ) {
-        authService.logout(
-                request
-        );
-        return Result.success(
-                null
-        );
+        /*
+         * Header： Bearer eyJ...
+         * 前面的： "Bearer " 长度正好是 7。
+         * substring(7)得到真正 Access Token。
+         */
+        String accessToken =
+                authorizationHeader
+                        .substring(7);
+        authService.logout(request, accessToken);
+        return Result.success(null);
     }
 }

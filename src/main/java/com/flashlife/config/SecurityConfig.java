@@ -54,28 +54,20 @@ public class SecurityConfig {
                  * Cookie / Session 认证体系
                  * 需要重新认真考虑 CSRF。
                  */
-                .csrf(
-                        AbstractHttpConfigurer::disable
-                )
+                .csrf(AbstractHttpConfigurer::disable)
                 /*
                  * 不使用 Spring 默认表单登录。
                  */
-                .formLogin(
-                        AbstractHttpConfigurer::disable
-                )
+                .formLogin(AbstractHttpConfigurer::disable)
                 /*
                  * 不使用 HTTP Basic。
                  */
-                .httpBasic(
-                        AbstractHttpConfigurer::disable
-                )
+                .httpBasic(AbstractHttpConfigurer::disable)
                 /*
                  * ==================================================
                  * Session
                  * ==================================================
-                 * JWT API：
-                 * 每次请求自己携带 Token。
-                 * 所以不依赖服务器 Session保存登录状态。
+                 * JWT API： 每次请求自己携带 Token。所以不依赖服务器 Session保存登录状态。
                  */
                 .sessionManagement(
                         session ->
@@ -101,31 +93,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth ->
                                 auth
-                                        /*
-                                         * 注册和登录必须允许匿名访问。
-                                         * 否则：
-                                         * “必须登录才能登录”
-                                         * 就会形成死循环。
-                                         */
                                         .requestMatchers(
-                                                "/api/auth/**"
+                                                "/api/auth/register",
+                                                "/api/auth/login",
+                                                "/api/auth/refresh"
                                         )
                                         .permitAll()
-                                        /*
-                                         * Day1 的一些健康检查接口
-                                         * 可以继续公开。
-                                         */
                                         .requestMatchers(
-                                                "/api/hello",
-                                                "/api/health",
-                                                "/api/info",
-                                                "/error"
+                                                "/api/auth/logout"
                                         )
-                                        .permitAll()
-                                        /*
-                                         * 其他接口：
-                                         * 必须已经认证。
-                                         */
+                                        .authenticated()
                                         .anyRequest()
                                         .authenticated()
                 )

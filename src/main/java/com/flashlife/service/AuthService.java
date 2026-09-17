@@ -7,6 +7,8 @@ import com.flashlife.dto.RegisterRequest;
 import com.flashlife.dto.TokenPairResponse;
 import com.flashlife.dto.UserResponse;
 
+import com.flashlife.security.AccessTokenBlacklistService;
+
 import com.flashlife.entity.RefreshToken;
 import com.flashlife.entity.User;
 
@@ -54,20 +56,20 @@ public class AuthService {
     /*
      * 构造器注入。
      */
+    private final AccessTokenBlacklistService accessTokenBlacklistService;
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            RefreshTokenService refreshTokenService
+            RefreshTokenService refreshTokenService,
+            AccessTokenBlacklistService
+                    accessTokenBlacklistService
     ) {
-        this.userRepository =
-                userRepository;
-        this.passwordEncoder =
-                passwordEncoder;
-        this.jwtService =
-                jwtService;
-        this.refreshTokenService =
-                refreshTokenService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
+        this.accessTokenBlacklistService = accessTokenBlacklistService;
     }
     /*
      * ========================================
@@ -269,23 +271,24 @@ public class AuthService {
      * ========================================
      */
     @Transactional
-    public void logout(
-            LogoutRequest request
+    public void logout(LogoutRequest request, String accessToken
     ) {
         /*
-         * 找到当前 Refresh Token。
-         * 找不到 / 已经失效：统一认为凭证无效。
+         * ========================================
+         * 第一部分：撤销 Refresh Token
+         * ========================================
          */
         RefreshToken refreshToken =
                 refreshTokenService
-                        .getValidTokenForUpdate(
-                                request.getRefreshToken()
-                        );
+                        .getValidTokenForUpdate(request.getRefreshToken());
+        refreshTokenService.revoke(refreshToken);
         /*
-         * 撤销 Refresh Token。
+         * ========================================
+         * 第二部分：撤销 Access Token
+         * ========================================
+         * 不修改 JWT 本身。 而是把它的 jti 加入 Redis Blacklist。
          */
-        refreshTokenService.revoke(
-                refreshToken
-        );
+        accessTokenBlacklistService
+                .blacklist(accessToken);
     }
 }

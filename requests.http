@@ -1,153 +1,14 @@
-### ==================================================
-### FlashLife Day5
-### Register + BCrypt + Login
-### ==================================================
-### 1. 注册 alice
-POST http://localhost:8080/api/auth/register
-Content-Type: application/json
-
-{
-  "username": "alice",
-  "password": "Alice123456",
-  "nickname": "Alice"
-}
-### 2. 注册 tom
-POST http://localhost:8080/api/auth/register
-Content-Type: application/json
-
-{
-  "username": "tom",
-  "password": "Tom123456",
-  "nickname": "Tom"
-}
-
-
-### 3. 重复注册 alice
-POST http://localhost:8080/api/auth/register
-Content-Type: application/json
-
-{
-  "username": "alice",
-  "password": "AnotherPassword123",
-  "nickname": "Alice2"
-}
-
-
-### 4. 正确密码登录 alice
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
-
-{
-  "username": "alice",
-  "password": "Alice123456"
-}
-
-
-### 5. 错误密码登录 alice
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
-
-{
-  "username": "alice",
-  "password": "WrongPassword"
-}
-
-
-### 6. 不存在用户登录
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
-
-{
-  "username": "not_exist",
-  "password": "Whatever123"
-}
-
-
-### 7. 查询用户
-GET http://localhost:8080/api/users
-
-
-### 8. 查询 alice
-GET http://localhost:8080/api/users/1
-
-
-### 9. 用户数量
-GET http://localhost:8080/api/users/count
-Authorization: Bearer {{token}}
-###
-GET http://localhost:8080/api/users/me
-
-###
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
-
-{
-  "username": "alice",
-  "password": "Alice123456"
-}
-###
 @baseUrl = http://localhost:8080
-@refreshToken = PASTE_ACCESS_TOKEN_HERE
+# 每次重新登录以后更新
 @accessToken = PASTE_ACCESS_TOKEN_HERE
-@token = PASTE_ACCESS_TOKEN_HERE
-### ================================================
-### 1. 注册
-### ================================================
-POST {{baseUrl}}/api/auth/register
-Content-Type: application/json
-
-{
-  "username": "jack",
-  "password": "Jack123456",
-  "nickname": "Jack"
-}
-
-
-### ================================================
-### 2. 登录
-### ================================================
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "username": "alice",
-  "password": "Alice123456"
-}
-
-
-### ================================================
-### 3. 未登录访问当前用户
-### 应该：401
-### ================================================
-GET {{baseUrl}}/api/users/me
-
-
-### ================================================
-### 4. 带 JWT 查询当前用户
-### 应该：200
-### ================================================
-GET {{baseUrl}}/api/users/me
-Authorization: Bearer {{token}}
-
-
-### ================================================
-### 5. 带 JWT 查询用户列表
-### ================================================
-GET {{baseUrl}}/api/users
-Authorization: Bearer {{token}}
-
-
-### ================================================
-### 6. 带 JWT 查询用户数量
-### ================================================
-GET {{baseUrl}}/api/users/count
-Authorization: Bearer {{token}}
-
+# 每次重新登录以后更新
+@refreshToken = PASTE_ACCESS_TOKEN_HERE
 
 
 ### ================================================
 ### 1. 登录
 ### ================================================
+
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
@@ -158,16 +19,21 @@ Content-Type: application/json
 
 
 ### ================================================
-### 2. Access Token 查询当前用户
+### 2. 登录后查询当前用户
+### 预期：200
 ### ================================================
+
 GET {{baseUrl}}/api/users/me
 Authorization: Bearer {{accessToken}}
 
 
 ### ================================================
-### 3. Refresh
+### 3. Logout
+### 预期：200
 ### ================================================
-POST {{baseUrl}}/api/auth/refresh
+
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -176,9 +42,20 @@ Content-Type: application/json
 
 
 ### ================================================
-### 4. Logout
+### 4. 使用已经 Logout 的 Access Token
+### 预期：401
 ### ================================================
-POST {{baseUrl}}/api/auth/logout
+
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### 5. 使用已经 Logout 的 Refresh Token
+### 预期：401
+### ================================================
+
+POST {{baseUrl}}/api/auth/refresh
 Content-Type: application/json
 
 {
