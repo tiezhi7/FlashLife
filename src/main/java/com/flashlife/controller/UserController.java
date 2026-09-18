@@ -13,6 +13,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.flashlife.dto.UpdateNicknameRequest;
+
+import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 import java.util.List;
 /*
  * 用户查询 API。
@@ -83,6 +90,37 @@ public class UserController {
                 userService.getUserById(
                         userId
                 )
+        );
+    }
+    /*
+     * 修改当前登录用户昵称 PATCH /api/users/me/nickname
+     */
+    @PatchMapping("/me/nickname")
+    public Result<UserResponse> updateMyNickname(
+            /*
+             * 当前 userId：
+             * JWT
+             * ↓
+             * Filter
+             * ↓
+             * SecurityContext
+             */
+            @AuthenticationPrincipal
+            Long userId,
+            /*
+             * 请求 Body。
+             */
+            @Valid
+            @RequestBody
+            UpdateNicknameRequest request
+    ) {
+        UserResponse user =
+                userService.updateNickname(
+                        userId,
+                        request.getNickname()
+                );
+        return Result.success(
+                user
         );
     }
 }

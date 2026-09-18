@@ -61,3 +61,17 @@ Content-Type: application/json
 {
   "refreshToken": "{{refreshToken}}"
 }
+###
+GET {{baseUrl}}/api/users/1
+Authorization: Bearer {{accessToken}}
+###
+GET {{baseUrl}}/api/users/999999
+Authorization: Bearer {{accessToken}}
+###
+PATCH {{baseUrl}}/api/users/me/nickname
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nickname": "Alice-Day9"
+}
