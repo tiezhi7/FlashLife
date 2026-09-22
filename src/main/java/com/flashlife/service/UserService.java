@@ -11,7 +11,15 @@ import com.flashlife.repository.UserRepository;
 
 import org.springframework.stereotype.Service;
 
+import com.flashlife.cache.CacheLockService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.flashlife.cache.CacheLockService;
 import com.flashlife.cache.UserCacheService;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 
 import java.util.List;
 /*
@@ -22,12 +30,26 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final UserCacheService userCacheService;
+    private final CacheLockService cacheLockService;
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+    /*
+     * 没抢到 Redis Lock 后，每隔多少毫秒再检查缓存。
+     */
+    @Value("${app.cache.user.lock-wait-millis}")
+    private long lockWaitMillis;
+    /*
+     * 最多检查多少次。
+     */
+    @Value("${app.cache.user.lock-retry-times}")
+    private int lockRetryTimes;
     public UserService(
             UserRepository userRepository,
-            UserCacheService userCacheService
+            UserCacheService userCacheService,
+            CacheLockService cacheLockService
     ) {
         this.userRepository = userRepository;
         this.userCacheService = userCacheService;
+        this.cacheLockService = cacheLockService;
     }
     /*
      * 查询全部用户。
@@ -180,5 +202,75 @@ public class UserService {
          * 返回最新用户。
          */
         return UserResponse.from(savedUser);
+    }
+    /*
+     * 尝试从 Cache 读取用户
+     * 返回：
+     * UserResponse = Cache Hit
+     * null = Cache Miss
+     * 如果缓存里是： __NULL__ 直接抛 USER_NOT_FOUND。
+     */
+    private UserResponse tryReadUserFromCache(
+            Long userId
+    ) {
+        String cachedValue = userCacheService.getRaw(userId);
+        /*
+         * Redis MISS或普通 Cache Redis 故障。
+         */
+        if (cachedValue == null) {
+            return null;
+        }
+        /*
+         * 空值 Cache 命中。
+         */
+        if (
+                userCacheService
+                        .isNullMarker(
+                                cachedValue
+                        )
+        ) {
+            log.info("[CACHE NULL HIT] userId={}", userId);
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        UserResponse cachedUser =
+                userCacheService.deserialize(
+                        userId,
+                        cachedValue
+                );
+        if (cachedUser != null) {
+            log.info("[CACHE HIT] userId={}", userId);
+        }
+        return cachedUser;
+    }
+    /*
+     * 从 MySQL 加载，并重建 Cache
+     */
+    private UserResponse loadFromDatabaseAndCache(
+            Long userId
+    ) {
+        log.info(
+                "[CACHE REBUILD] Query database, userId={}",
+                userId
+        );
+        User user =
+                userRepository
+                        .findById(userId)
+                        .orElse(null);
+        /*
+         * DB 中也不存在。
+         */
+        if (user == null) {
+            /*
+             * 写短 TTL 空值 Cache。
+             */
+            userCacheService.putNull(userId);
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        UserResponse response = UserResponse.from(user);
+        /*
+         * 回填 Redis。
+         */
+        userCacheService.putUser(response);
+        return response;
     }
 }
