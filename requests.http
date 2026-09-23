@@ -75,3 +75,65 @@ Content-Type: application/json
 {
   "nickname": "Alice-Day9"
 }
+
+### ================================================
+### Day11 - 1
+### 查询帖子
+### ================================================
+
+GET {{baseUrl}}/api/posts/1
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### Day11 - 2
+### 第一次点赞
+### ================================================
+
+POST {{baseUrl}}/api/posts/1/like
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### Day11 - 3
+### 重复点赞
+### ================================================
+
+POST {{baseUrl}}/api/posts/1/like
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### Day11 - 4
+### 查询自己的点赞状态
+### ================================================
+
+GET {{baseUrl}}/api/posts/1/like/me
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### Day11 - 5
+### 查询点赞数量
+### ================================================
+
+GET {{baseUrl}}/api/posts/1/likes/count
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### Day11 - 6
+### 取消点赞
+### ================================================
+
+DELETE {{baseUrl}}/api/posts/1/like
+Authorization: Bearer {{accessToken}}
+
+
+### ================================================
+### Day11 - 7
+### 再次取消点赞
+### ================================================
+
+DELETE {{baseUrl}}/api/posts/1/like
+Authorization: Bearer {{accessToken}}

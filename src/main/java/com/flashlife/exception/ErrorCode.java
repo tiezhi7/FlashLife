@@ -80,10 +80,13 @@ public enum ErrorCode {
             "用户不存在",
             HttpStatus.NOT_FOUND
     ),
+    POST_NOT_FOUND(
+            40402,
+            "帖子不存在",
+            HttpStatus.NOT_FOUND
+    ),
     /*
-     * ========================================
      * 409 - 用户名已经存在
-     * ========================================
      * 注册时： username 已经被别人使用。
      */
     USERNAME_ALREADY_EXISTS(
@@ -92,9 +95,7 @@ public enum ErrorCode {
             HttpStatus.CONFLICT
     ),
     /*
-     * ========================================
      * 500 - 未知服务器错误
-     * ========================================
      */
     INTERNAL_ERROR(
             50000,
@@ -102,17 +103,10 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR
     );
     /*
-     * ========================================
      * 从这里开始已经不是枚举常量
-     * ========================================
      */
     /*
      * FlashLife 自定义业务错误码。
-     * 例如：
-     * 40001
-     * 40101
-     * 40401
-     * 40901
      */
     private final Integer code;
     /*
@@ -121,12 +115,6 @@ public enum ErrorCode {
     private final String message;
     /*
      * HTTP 状态码。
-     * 例如：
-     * 400
-     * 401
-     * 404
-     * 409
-     * 500
      */
     private final HttpStatus httpStatus;
     /*
