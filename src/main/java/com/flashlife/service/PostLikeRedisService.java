@@ -1,116 +1,201 @@
 package com.flashlife.service;
 
+
+import com.flashlife.stream.PostLikeStreamNames;
+
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import org.springframework.stereotype.Service;
 
+
+import java.time.Instant;
+
 import java.util.Arrays;
+
+import java.util.UUID;
+
+
 /*
  * PostLikeRedisService
- * 专门负责：Redis 中的点赞状态和点赞计数。
+ * Day12 职责：
+ * 1. Redis 实时点赞状态
+ * 2. Redis 点赞计数
+ * 3. Redis Stream 点赞事件
+ * 最重要：
+ * 状态修改
+ * +
+ * Counter 修改
+ * +
+ * Event 写入
+ * 都在同一个 Lua 中完成。
  */
 @Service
 public class PostLikeRedisService {
     /*
-     * 用户点赞集合 Key。
-     * 最终：flashlife:post:likes:users:1
+     * 点赞用户 Set。
+     * 例如：flashlife:post:likes:users:1
      */
     private static final String USERS_KEY_PREFIX = "flashlife:post:likes:users:";
     /*
-     * 点赞数量 Key。
+     * 点赞数量。
+     * 例如：flashlife:post:likes:count:1
      */
     private static final String COUNT_KEY_PREFIX = "flashlife:post:likes:count:";
     /*
-     * 点赞 Lua
-     * KEYS[1] =点赞用户集合
-     * KEYS[2] =点赞数量
-     * ARGV[1] =userId
+     * LIKE Lua
+     * KEYS[1]=点赞用户 Set
+     * KEYS[2]=点赞 Count
+     * KEYS[3]=Redis Stream
+     * ARGV[1]=userId
+     * ARGV[2]=postId
+     * ARGV[3]=eventId
+     * ARGV[4]=occurredAt
      */
     private static final DefaultRedisScript<Long>
             LIKE_SCRIPT =
             new DefaultRedisScript<>(
                     """
-                    local added = redis.call(
-                        'SADD',
-                        KEYS[1],
-                        ARGV[1]
-                    )
-
-                    if added == 1 then
+                    local added =
                         redis.call(
-                            'INCR',
+                            'SADD',
+                            KEYS[1],
+                            ARGV[1]
+                        )
+                    if added == 1 then
+                        local count =
+                            redis.call(
+                                'INCR',
+                                KEYS[2]
+                            )
+                        redis.call(
+                            'XADD',
+                            KEYS[3],
+                            '*',
+                            'eventId',
+                            ARGV[3],
+                            'eventType',
+                            'LIKE',
+                            'postId',
+                            ARGV[2],
+                            'userId',
+                            ARGV[1],
+                            'occurredAt',
+                            ARGV[4]
+                        )
+                        return count
+                    end
+                    local count =
+                        redis.call(
+                            'GET',
                             KEYS[2]
                         )
-                    end
-
-                    local count = redis.call(
-                        'GET',
-                        KEYS[2]
-                    )
-
                     if not count then
-                        return 0
+                        count =
+                            redis.call(
+                                'SCARD',
+                                KEYS[1]
+                            )
+                        redis.call(
+                            'SET',
+                            KEYS[2],
+                            count
+                        )
                     end
-
                     return tonumber(count)
                     """,
                     Long.class
             );
     /*
-     * 取消点赞 Lua
+     * UNLIKE Lua
      */
     private static final DefaultRedisScript<Long>
             UNLIKE_SCRIPT =
             new DefaultRedisScript<>(
                     """
-                    local removed = redis.call(
-                        'SREM',
-                        KEYS[1],
-                        ARGV[1]
-                    )
-
-                    if removed == 1 then
-
-                        local current = redis.call(
-                            'GET',
-                            KEYS[2]
+                    local removed =
+                        redis.call(
+                            'SREM',
+                            KEYS[1],
+                            ARGV[1]
                         )
-
+                    if removed == 1 then
+                        local current =
+                            redis.call(
+                                'GET',
+                                KEYS[2]
+                            )
                         if current then
-
-                            current = tonumber(current)
-
+                            current =
+                                tonumber(current)
                             if current > 0 then
-                                redis.call(
-                                    'DECR',
-                                    KEYS[2]
-                                )
+                                current =
+                                    redis.call(
+                                        'DECR',
+                                        KEYS[2]
+                                    )
                             else
                                 redis.call(
                                     'SET',
                                     KEYS[2],
                                     0
                                 )
+                                current = 0
                             end
+                        else
+                            current =
+                                redis.call(
+                                    'SCARD',
+                                    KEYS[1]
+                                )
+                            redis.call(
+                                'SET',
+                                KEYS[2],
+                                current
+                            )
                         end
+                        redis.call(
+                            'XADD',
+                            KEYS[3],
+                            '*',
+                            'eventId',
+                            ARGV[3],
+                            'eventType',
+                            'UNLIKE',
+                            'postId',
+                            ARGV[2],
+                            'userId',
+                            ARGV[1],
+                            'occurredAt',
+                            ARGV[4]
+                        )
+                        return current
                     end
-
-                    local count = redis.call(
-                        'GET',
-                        KEYS[2]
-                    )
-
+                    local count =
+                        redis.call(
+                            'GET',
+                            KEYS[2]
+                        )
                     if not count then
-                        return 0
+                        count =
+                            redis.call(
+                                'SCARD',
+                                KEYS[1]
+                            )
+                        redis.call(
+                            'SET',
+                            KEYS[2],
+                            count
+                        )
                     end
-
                     return tonumber(count)
                     """,
                     Long.class
             );
-    private final StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate
+            stringRedisTemplate;
     public PostLikeRedisService(
             StringRedisTemplate stringRedisTemplate
     ) {
@@ -123,14 +208,30 @@ public class PostLikeRedisService {
             Long postId,
             Long userId
     ) {
+        /*
+         * 每一次真实状态变化
+         * 都有自己的 Event ID。
+         */
+        String eventId =
+                UUID
+                        .randomUUID()
+                        .toString();
+        String occurredAt =
+                Instant
+                        .now()
+                        .toString();
         Long count =
                 stringRedisTemplate.execute(
                         LIKE_SCRIPT,
                         Arrays.asList(
                                 buildUsersKey(postId),
-                                buildCountKey(postId)
+                                buildCountKey(postId),
+                                PostLikeStreamNames.STREAM_KEY
                         ),
-                        String.valueOf(userId)
+                        String.valueOf(userId),
+                        String.valueOf(postId),
+                        eventId,
+                        occurredAt
                 );
         return count == null
                 ?
@@ -145,14 +246,26 @@ public class PostLikeRedisService {
             Long postId,
             Long userId
     ) {
+        String eventId =
+                UUID
+                        .randomUUID()
+                        .toString();
+        String occurredAt =
+                Instant
+                        .now()
+                        .toString();
         Long count =
                 stringRedisTemplate.execute(
                         UNLIKE_SCRIPT,
                         Arrays.asList(
                                 buildUsersKey(postId),
-                                buildCountKey(postId)
+                                buildCountKey(postId),
+                                PostLikeStreamNames.STREAM_KEY
                         ),
-                        String.valueOf(userId)
+                        String.valueOf(userId),
+                        String.valueOf(postId),
+                        eventId,
+                        occurredAt
                 );
         return count == null
                 ?
@@ -161,7 +274,7 @@ public class PostLikeRedisService {
                 count;
     }
     /*
-     * 当前用户是否点赞
+     * 当前用户有没有点赞。
      */
     public boolean hasLiked(
             Long postId,
@@ -177,7 +290,7 @@ public class PostLikeRedisService {
         return Boolean.TRUE.equals(member);
     }
     /*
-     * 获取点赞数
+     * 查询点赞数。
      */
     public long getLikeCount(
             Long postId
